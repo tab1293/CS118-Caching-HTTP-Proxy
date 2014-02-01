@@ -3,41 +3,55 @@
 #include <iostream>
 #include <netinet/in.h>
 
+// Constant Variables
+#define MAX_CONNECTIONS = 20;
+#define SERVER_PORT = 14886;
+
 using namespace std;
 
 int main (int argc, char *argv[])
 {
-  // command line parsing
 	int sockfd;
-	struct sock_addrin serv_addr;
+	struct sockaddr_in serverAddr;
 
+	// Create a socket
 	if(sockfd = socket(AF_INET, SOCK_STREAM, 0) < 0) {
 		error("Error opening socket!");
 	}
 
-	memset(&serv_addr, '0', sizeof(sockaddr_in));
+	// Build server socket address
+	memset(&serverAddr, '0', sizeof(sockaddr_in));
 
-	s.sin_famiy = AF_INET;
-	s.sin_port = htons(14886);
-	s.sin_addr.s_addr = htonl(INADDR_ANY);
+	serverAddr.sin_famiy = AF_INET;
+	serverAddr.sin_port = htons(SERVER_PORT);
+	serverAddr.sin_addr.s_addr = htonl(INADDR_ANY);
 
-
-	if(bind(sockfd, (struct sockaddr_in*) serv_addr, sizeof(serv_addr)) < 0) {
+	// Bind socket
+	if(bind(sockfd, (struct sockaddr_in*) serverAddr, sizeof(serverAddr)) < 0) {
 		perror("Error binding to socket!");
 	}
 
-	if(listen(sockfd, 20) < 0) {
+	// Listen 
+	if(listen(sockfd, MAX_CONNECTIONS) < 0) {
 		perror("Error listening on socket!");
 	}
 
 	int connfd;
-	struct sockaddr_storage client_addr;
-	socklen_t client_addr_size = sizeo(client_addr);
+	struct sockaddr_storage clientAddr;
+	socklen_t clientAddrSize = sizeo(clientAddr);
 
-	while(connfd = accept(sockfd, (struct sock_addr*) &client_addr, &client_addr_size) >= 0) {
+	// Poll for connections 
+	while(connfd = accept(sockfd, (struct sock_addr*) &clientAddr, &clientAddrSize) >= 0) {
+
+		// Fork a new process to handle this connection
 		pid_t pid = fork();
 		if(pid == 0) {
+			// Child process
 			ConnectionHandler* connHandler = new ConnectionHandler(connfd); 
+			connHandler->processRequests();
+
+			// TODO: At this point we close the connection and exit() the process
+
 		} else if(pid < 0) {
 			perror("There was an error forking!");
 		}
